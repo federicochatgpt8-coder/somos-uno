@@ -8,7 +8,7 @@ let pedidoEditandoActual = null;
 let intervaloActualizacion = null;
 let actualizacionEnCurso = false;
 
-const ACTUALIZACION_CADA_MS = 10000;
+const ACTUALIZACION_CADA_MS = 20000;
 
 
 
@@ -59,6 +59,9 @@ function iniciarActualizacionAutomatica() {
   intervaloActualizacion = setInterval(function () {
 
     if (!usuarioActual) return;
+
+    // Con la app en segundo plano o la pantalla apagada no se consulta.
+    if (document.hidden) return;
 
     const tipo =
       String(usuarioActual.tipo || "")

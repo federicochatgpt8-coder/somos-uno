@@ -36,7 +36,19 @@ function tokenVigente(token) {
   }
 }
 
-async function postApi(cuerpo) {
+/** Funciones que solo leen: se pueden reintentar sin riesgo de hacer algo dos veces. */
+const FUNCIONES_LECTURA = new Set([
+  "ping", "quienSoy", "obtenerPedidos", "obtenerTareasTransportista", "obtenerTransportistas",
+  "obtenerLogPedido", "obtenerVeterinariasYAlias"
+]);
+
+function errorDeRed(texto) {
+  const e = new Error(texto);
+  e.esDeRed = true;
+  return e;
+}
+
+async function postApiUnaVez(cuerpo) {
   let r;
   try {
     r = await fetch(CONFIG_APP.API_URL, {
@@ -46,10 +58,43 @@ async function postApi(cuerpo) {
       body: JSON.stringify(cuerpo)
     });
   } catch (e) {
-    throw new Error("No se pudo conectar. Revisá tu conexión a internet.");
+    throw errorDeRed(navigator.onLine === false
+      ? "Sin conexión a internet."
+      : "No se pudo conectar con el servidor. Probá de nuevo en unos segundos.");
   }
-  return r.json();
+  try {
+    return await r.json();
+  } catch (e) {
+    throw errorDeRed("El servidor tardó en responder. Probá de nuevo en unos segundos.");
+  }
 }
+
+async function postApi(cuerpo) {
+  const reintentos = FUNCIONES_LECTURA.has(cuerpo.fn) ? 2 : 0;
+  for (let i = 0; ; i++) {
+    try {
+      const r = await postApiUnaVez(cuerpo);
+      avisoSinConexion(false);
+      return r;
+    } catch (e) {
+      if (!e.esDeRed || i >= reintentos) throw e;
+      await new Promise(res => setTimeout(res, 1200 * (i + 1)));
+    }
+  }
+}
+
+/* Cartel fijo y discreto mientras no hay conexión (en vez de muchos avisos). */
+function avisoSinConexion(mostrar) {
+  let el = document.getElementById("avisoConexion");
+  if (!mostrar) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div");
+  el.id = "avisoConexion";
+  el.textContent = "Sin conexión con el servidor · reintentando…";
+  document.body.appendChild(el);
+}
+
+window.addEventListener("online", () => { avisoSinConexion(false); if (usuarioActual) cargarApp(); });
 
 /* ------------------------------------------------------------------ */
 /*  Llamadas al servidor                                               */
@@ -67,7 +112,12 @@ function servidor() {
       return (...args) => {
         llamarApi(nombre, args).then(
           r => alExito(r),
-          e => { if (e.message !== "SESION_VENCIDA") alFallar(e); }
+          e => {
+            if (e.message === "SESION_VENCIDA") return;
+            // Las lecturas automáticas que fallan por red no molestan: se reintenta solo.
+            if (e.esDeRed && FUNCIONES_LECTURA.has(nombre)) { avisoSinConexion(true); return; }
+            alFallar(e);
+          }
         );
       };
     }

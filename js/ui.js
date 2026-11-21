@@ -29,7 +29,11 @@ const ui = (function () {
   function toast(mensaje, tipo) {
     const texto = String(mensaje == null ? "" : mensaje);
     const t = tipo || (/^error|no se pudo|inválid|no hay |no se encontr|debe |falta/i.test(texto) ? "error" : "ok");
+    // Si ya está en pantalla el mismo aviso, no se repite.
+    const yaEsta = [...contenedorToasts().children].some(x => x.dataset.texto === texto);
+    if (yaEsta) return;
     const el = document.createElement("div");
+    el.dataset.texto = texto;
     el.className = "toast toast-" + t;
     el.innerHTML = `<span class="toast-icono">${t === "error" ? "!" : "✓"}</span><span>${esc(texto).replace(/\n/g, "<br>")}</span>`;
     el.onclick = () => cerrar();

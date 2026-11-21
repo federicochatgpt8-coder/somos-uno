@@ -581,3 +581,9 @@ body.modal-abierto { overflow: hidden; }
 .rev-conf.rev-fila { border-top: none; padding: 6px 0; }
 .rev-vincular { background: #f3f7fb; border-radius: 12px; padding: 4px 12px 8px; margin-bottom: 10px; }
 .rev-vincular-tit { font-weight: 800; color: var(--azul); font-size: 13px; padding-top: 8px; }
+
+#avisoConexion {
+  position: fixed; top: calc(8px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  z-index: 2100001; background: #7a4b00; color: #fff; font-size: 13px; font-weight: 600;
+  padding: 7px 14px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.2); white-space: nowrap;
+}

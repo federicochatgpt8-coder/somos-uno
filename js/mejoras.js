@@ -491,3 +491,18 @@ function tarjetaHoy(t) {
       </div>
     </div>`;
 }
+
+
+/* Al volver a la app (desbloquear el celular, cambiar de pestaña) se actualiza enseguida. */
+let ultimaVueltaApp = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !usuarioActual) return;
+  if (Date.now() - ultimaVueltaApp < 5000) return;
+  ultimaVueltaApp = Date.now();
+  const tipo = String(usuarioActual.tipo || "").toUpperCase();
+  if (tipo === "TRANSPORTISTA") {
+    servidor().withSuccessHandler(t => { pedidosGlobal = t; renderVistaTransportista(t); }).obtenerTareasTransportista(usuarioActual.mail);
+  } else {
+    servidor().withSuccessHandler(p => { pedidosGlobal = p; pintarAdmin(p); }).obtenerPedidos();
+  }
+});
