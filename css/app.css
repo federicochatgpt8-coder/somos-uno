@@ -574,3 +574,10 @@ body.modal-abierto { overflow: hidden; }
 .m-pie { color: #98a2b3; font-size: 12px; margin-top: 4px; }
 @media (max-width: 760px) { .rev-acciones { width: 100%; } .rev-acciones > * { flex: 1 1 auto; } .rev-acciones select { max-width: none; } }
 .rev-mas summary { cursor: pointer; color: var(--azul); font-weight: 700; font-size: 13px; padding: 10px 0; border-top: 1px solid #f3ead6; }
+
+.rev-noaliada { background: #f2f4f7; color: #667085; border-radius: 999px; padding: 1px 8px; }
+.rev-conf-acc { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rev-conf-acc select { min-height: 30px; border-radius: 999px; border: 1.5px solid #d0d5dd; font-size: 12px; padding: 2px 8px; max-width: 200px; }
+.rev-conf.rev-fila { border-top: none; padding: 6px 0; }
+.rev-vincular { background: #f3f7fb; border-radius: 12px; padding: 4px 12px 8px; margin-bottom: 10px; }
+.rev-vincular-tit { font-weight: 800; color: var(--azul); font-size: 13px; padding-top: 8px; }

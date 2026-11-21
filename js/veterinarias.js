@@ -57,6 +57,10 @@ function resolverVet(texto) {
   if (alias) {
     const of = alias.id && d.porId[alias.id];
     if (of) return { grupo: "id:" + of.id, nombre: of.nombre, estado: "confirmada", clave: k };
+    // Se había marcado como "distinta", pero después se sumó como aliada con el mismo nombre
+    // (mismas letras): se cuenta automáticamente con la aliada.
+    const ahoraAliada = d.porClaveOficial[claveVet(alias.nombre)] || d.porClaveOficial[k];
+    if (ahoraAliada) return { grupo: "id:" + ahoraAliada.id, nombre: ahoraAliada.nombre, estado: "confirmada", clave: k };
     return { grupo: "n:" + claveVet(alias.nombre), nombre: alias.nombre, estado: "confirmada", clave: k };
   }
 
@@ -173,18 +177,43 @@ function htmlRevisionVets(pedidos) {
 
   const confirmadas = d.alias.slice().sort((a, b) => a.clave.localeCompare(b.clave));
 
+  // Marcadas como "distintas" que hoy se parecen a una aliada → sugerir vincular
+  const paraVincular = d.alias
+    .filter(a => !a.id)
+    .filter(a => { const r = resolverVet(a.ejemplo || a.clave); return r && !r.grupo.startsWith("id:"); })
+    .map(a => ({ a, sug: sugerenciasVet(claveVet(a.nombre || a.clave)).filter(x => x.id) }))
+    .filter(x => x.sug.length);
+
+  const htmlVincular = !paraVincular.length ? "" : `
+    <div class="rev-vincular">
+      <div class="rev-vincular-tit">¿Alguna de estas ahora es aliada?</div>
+      ${paraVincular.map(({ a, sug }) => `
+        <div class="rev-fila" data-clave="${ui.esc(a.clave)}" data-ejemplo="${ui.esc(a.ejemplo || a.clave)}">
+          <div class="rev-texto"><strong>${ui.esc(a.nombre)}</strong><small>marcada como no aliada</small></div>
+          <div class="rev-acciones">
+            ${sug.map(x => `<button class="rev-sug" data-id="${ui.esc(x.id)}" data-nombre="${ui.esc(x.nombre)}" onclick="confirmarVet(this)">Es ${ui.esc(x.nombre)} ✓</button>`).join("")}
+          </div>
+        </div>`).join("")}
+    </div>`;
+
   return `<div class="m-card m-revision">
     <div class="m-card-titulo">Veterinarias por revisar ${pend.length ? `<span class="rev-badge">${pend.length}</span>` : ""}</div>
     <p class="rev-ayuda">Nombres escritos por los clientes que no coinciden exactamente con la lista oficial. No se unen solos: elegí a cuál corresponde y queda guardado para siempre en la pestaña <em>veterinarias_alias</em>.</p>
+    ${htmlVincular}
     ${pend.length ? filas : `<p class="vacio">✓ No hay nombres pendientes de revisar.</p>`}
     ${confirmadas.length ? `
       <details class="rev-confirmadas">
         <summary>Equivalencias confirmadas (${confirmadas.length})</summary>
         ${confirmadas.map(a => {
-          const destino = a.id && d.porId[a.id] ? d.porId[a.id].nombre : (a.nombre || "—");
-          return `<div class="rev-conf">
-            <span>“${ui.esc(a.ejemplo || a.clave)}” → <strong>${ui.esc(destino)}</strong>${a.confirmadoPor ? ` <small>(${ui.esc(a.confirmadoPor)})</small>` : ""}</span>
-            <button onclick="quitarVet('${ui.esc(a.clave)}')">Quitar</button>
+          const r = resolverVet(a.ejemplo || a.clave);
+          const destino = r ? r.nombre : (a.nombre || "—");
+          const esAliada = r && r.grupo.startsWith("id:");
+          return `<div class="rev-conf rev-fila" data-clave="${ui.esc(a.clave)}" data-ejemplo="${ui.esc(a.ejemplo || a.clave)}">
+            <span>“${ui.esc(a.ejemplo || a.clave)}” → <strong>${ui.esc(destino)}</strong>${esAliada ? "" : ` <small class="rev-noaliada">no aliada</small>`}${a.confirmadoPor ? ` <small>(${ui.esc(a.confirmadoPor)})</small>` : ""}</span>
+            <span class="rev-conf-acc">
+              ${esAliada ? "" : `<select onchange="if(this.value) confirmarVet(this)"><option value="">Vincular a aliada…</option>${opciones}</select>`}
+              <button onclick="quitarVet('${ui.esc(a.clave)}')">Quitar</button>
+            </span>
           </div>`;
         }).join("")}
       </details>` : ""}
