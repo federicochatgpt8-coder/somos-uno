@@ -89,41 +89,7 @@ function iniciarActualizacionAutomatica() {
         .withSuccessHandler(function(pedidos){
 
           pedidosGlobal = pedidos;
-
-          const pedidosFiltrados =
-            vistaAdministradorActual === "FINALIZADOS"
-              ? pedidos.filter(p =>
-                  ["CERRADO","CANCELADO"].includes(
-                    String(p.ESTADO_LOGISTICO || "")
-                      .trim()
-                      .toUpperCase()
-                  )
-                )
-              : pedidos.filter(p =>
-                  !["CERRADO","CANCELADO"].includes(
-                    String(p.ESTADO_LOGISTICO || "")
-                      .trim()
-                      .toUpperCase()
-                  )
-                );
-
-          renderDashboard(pedidos);
-          renderKanban(pedidosFiltrados);
-
-          document.getElementById("dashboard").insertAdjacentHTML(
-            "afterbegin",
-            `
-            <div class="acciones menu-admin">
-            <button onclick="cambiarVistaAdministrador('ACTIVOS')">
-              Pedidos activos
-            </button>
-
-            <button onclick="cambiarVistaAdministrador('FINALIZADOS')">
-              Pedidos finalizados
-            </button>
-          </div>
-          `
-        );
+          pintarAdmin(pedidos);
 
           if (
             pedidoEditandoActual &&
@@ -236,44 +202,8 @@ function cargarPedidos() {
 
   servidor()
     .withSuccessHandler(function(pedidos) {
-
       pedidosGlobal = pedidos;
-
-      const pedidosFiltrados =
-        vistaAdministradorActual === "FINALIZADOS"
-          ? pedidos.filter(p =>
-              ["CERRADO", "CANCELADO"].includes(
-                String(p.ESTADO_LOGISTICO || "")
-                  .trim()
-                  .toUpperCase()
-              )
-            )
-          : pedidos.filter(p =>
-              !["CERRADO", "CANCELADO"].includes(
-                String(p.ESTADO_LOGISTICO || "")
-                  .trim()
-                  .toUpperCase()
-              )
-            );
-
-      renderDashboard(pedidos);
-      renderKanban(pedidosFiltrados);
-
-      document.getElementById("dashboard").insertAdjacentHTML(
-        "afterbegin",
-        `
-        <div class="acciones menu-admin">
-          <button onclick="cambiarVistaAdministrador('ACTIVOS')">
-            Pedidos activos
-          </button>
-
-          <button onclick="cambiarVistaAdministrador('FINALIZADOS')">
-            Pedidos finalizados
-          </button>
-        </div>
-        `
-      );
-
+      pintarAdmin(pedidos, true);
     })
     .obtenerPedidos();
 }
@@ -497,7 +427,7 @@ function renderKanban(pedidos) {
 
     return `
       <div class="column">
-        <h3>${estado} (${items.length})</h3>
+        <h3 class="col-titulo grupo-${grupoEstado(estado)}">${etiquetaEstado(estado)} <span class="col-cant">${items.length}</span></h3>
         ${items.map(renderPedido).join("")}
       </div>
     `;
@@ -1198,7 +1128,7 @@ function verPedido(idPedido){
       </div>
 
       <div class="estado-actual">
-        Estado actual: ${safeHtml(pedido.ESTADO_LOGISTICO || "SIN ESTADO")}
+        Estado actual: ${chipEstado(pedido.ESTADO_LOGISTICO)}
       </div>
 
       ${bloque("Datos del servicio", [
@@ -1245,7 +1175,7 @@ function verPedido(idPedido){
     </div>
 
     <div class="estado-actual">
-      Estado actual: ${safeHtml(pedido.ESTADO_LOGISTICO || "SIN ESTADO")}
+      Estado actual: ${chipEstado(pedido.ESTADO_LOGISTICO)}
     </div>
 
     ${bloque("Autorización del pedido", [
@@ -1519,9 +1449,9 @@ function verPedido(idPedido){
   `;
 }
 
-function resolverIncidencia(idPedido) {
+async function resolverIncidencia(idPedido) {
 
-  if (!confirm("¿Resolver incidencia y volver al estado anterior?")) {
+  if (!await ui.confirmar("¿Resolver incidencia y volver al estado anterior?")) {
     return;
   }
 
@@ -2063,8 +1993,8 @@ function renderBloqueFechas(pedido) {
   `;
 }
 
-function confirmarRetiroPedidoAdmin(idPedido) {
-  if (!confirm("¿Confirmás el retiro desde administración?")) return;
+async function confirmarRetiroPedidoAdmin(idPedido) {
+  if (!await ui.confirmar("¿Confirmás el retiro desde administración?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2076,8 +2006,8 @@ function confirmarRetiroPedidoAdmin(idPedido) {
     .confirmarRetiro(idPedido);
 }
 
-function confirmarIngresoBasePedidoAdmin(idPedido) {
-  if (!confirm("¿Confirmás que la mascota ingresó a base?")) return;
+async function confirmarIngresoBasePedidoAdmin(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que la mascota ingresó a base?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2089,8 +2019,8 @@ function confirmarIngresoBasePedidoAdmin(idPedido) {
     .pasarSiguienteEstadoLogistico(idPedido);
 }
 
-function confirmarIngresoBasePedido(idPedido) {
-  if (!confirm("¿Confirmás que la mascota ingresó a base?")) return;
+async function confirmarIngresoBasePedido(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que la mascota ingresó a base?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2102,9 +2032,9 @@ function confirmarIngresoBasePedido(idPedido) {
     .pasarSiguienteEstadoLogistico(idPedido);
 }
 
-function volverEstadoAnteriorTransportista(idPedido) {
+async function volverEstadoAnteriorTransportista(idPedido) {
 
-  if (!confirm("¿Volver a EN_RETIRO?")) return;
+  if (!await ui.confirmar("¿Volver el pedido a “En retiro”?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2116,8 +2046,8 @@ function volverEstadoAnteriorTransportista(idPedido) {
     .volverEstadoAnteriorLogistico(idPedido);
 }
 
-function confirmarTrasladoCrematorioPedidoAdmin(idPedido) {
-  if (!confirm("¿Confirmás el traslado al crematorio desde administración?")) return;
+async function confirmarTrasladoCrematorioPedidoAdmin(idPedido) {
+  if (!await ui.confirmar("¿Confirmás el traslado al crematorio desde administración?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2129,8 +2059,8 @@ function confirmarTrasladoCrematorioPedidoAdmin(idPedido) {
     .confirmarTrasladoCrematorio(idPedido);
 }
 
-function confirmarDevolucionCenizasPedidoAdmin(idPedido) {
-  if (!confirm("¿Confirmás que las cenizas fueron recibidas en sede desde administración?")) return;
+async function confirmarDevolucionCenizasPedidoAdmin(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que las cenizas fueron recibidas en sede desde administración?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2142,8 +2072,8 @@ function confirmarDevolucionCenizasPedidoAdmin(idPedido) {
     .confirmarDevolucionCenizas(idPedido);
 }
 
-function confirmarEntregaCenizasPedidoAdmin(idPedido) {
-  if (!confirm("¿Confirmás la entrega al tutor desde administración?")) return;
+async function confirmarEntregaCenizasPedidoAdmin(idPedido) {
+  if (!await ui.confirmar("¿Confirmás la entrega al tutor desde administración?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2267,12 +2197,11 @@ function descargarDocumentacionPedido(idPedido, boton) {
     .generarPdfDocumentacionPedido(idPedido);
 }
 
-function editarDatoPedido(columna, nombreCampo, valorActual) {
+async function editarDatoPedido(columna, nombreCampo, valorActual) {
 
-  const nuevoValor = prompt(
-    "Editar " + nombreCampo + ":",
-    valorActual || ""
-  );
+  const nuevoValor = await ui.pedirTexto("Editar " + nombreCampo, {
+    valor: valorActual || ""
+  });
 
   if (nuevoValor === null) return;
 
@@ -2359,11 +2288,12 @@ function safeHtml(valor) {
     .replace(/\n/g, "<br>");
 }
 
-function autorizarPedido(idPedido, valor) {
+async function autorizarPedido(idPedido, valor) {
 
   if (valor === "NO") {
-    const confirmar = confirm(
-      "¿Estás seguro que querés rechazar este pedido?\n\nEsta acción cambiará el pedido a rechazado."
+    const confirmar = await ui.confirmar(
+      "¿Estás seguro que querés rechazar este pedido?\n\nEsta acción cambiará el pedido a rechazado.",
+      { peligro: true, textoOk: "Sí, rechazar" }
     );
 
     if (!confirmar) return;
@@ -2379,8 +2309,12 @@ function autorizarPedido(idPedido, valor) {
     .actualizarAutorizacionPedido(idPedido, valor);
 }
 
-function agregarObservacionCliente(idPedido) {
-  const observacion = prompt("Nueva observación del cliente:", "");
+async function agregarObservacionCliente(idPedido) {
+  const observacion = await ui.pedirTexto("Nueva observación", {
+    multilinea: true,
+    obligatorio: true,
+    placeholder: "Escribí la observación…"
+  });
 
   if (!observacion) return;
 
@@ -2394,8 +2328,13 @@ function agregarObservacionCliente(idPedido) {
     .agregarObservacionCliente(idPedido, observacion);
 }
 
-function marcarPago(idPedido, valor) {
-  const observacion = prompt("Observación de pago (opcional):", "");
+async function marcarPago(idPedido, valor) {
+  const observacion = await ui.pedirTexto("Observación de pago (opcional)", {
+    multilinea: true,
+    textoOk: "Confirmar"
+  });
+
+  if (observacion === null) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2407,9 +2346,9 @@ function marcarPago(idPedido, valor) {
     .actualizarVerificacionPago(idPedido, valor, observacion || "");
 }
 
-function marcarPagoTransportista(idPedido) {
+async function marcarPagoTransportista(idPedido) {
 
-  if (!confirm("¿Confirmás que el pago fue recibido?")) return;
+  if (!await ui.confirmar("¿Confirmás que el pago fue recibido?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -2479,13 +2418,12 @@ function cargarPedidosSinCerrar(idPedido) {
   servidor()
     .withSuccessHandler(function(pedidos) {
       pedidosGlobal = pedidos;
-      renderDashboard(pedidos);
-      renderKanban(pedidos);
+      pintarAdmin(pedidos, true);
       verPedido(idPedido);
     })
     .obtenerPedidos();
 }
-function abrirAsignarTransportista(idPedido) {
+async function abrirAsignarTransportista(idPedido) {
 
   const pedido = pedidosGlobal.find(p => p.ID_PEDIDO == idPedido);
 
@@ -2494,112 +2432,83 @@ function abrirAsignarTransportista(idPedido) {
     return;
   }
 
-  const estado =
-    String(pedido.ESTADO_LOGISTICO || "")
-      .trim()
-      .toUpperCase();
+  const estado = String(pedido.ESTADO_LOGISTICO || "").trim().toUpperCase();
 
   let etapa = "";
   let fechaActual = "";
+  let actual = "";
 
   if (estado === "RETIRO_PROGRAMADO" || estado === "EN_RETIRO") {
     etapa = "RETIRO";
     fechaActual = pedido.RETIRO_FECHA_PROGRAMADA || "";
-  }
-
-  else if (
-    estado === "PENDIENTE_ENVIO_CREMATORIO" ||
-    estado === "EN_TRASLADO_A_CREMATORIO"
-  ) {
+    actual = pedido.RETIRO_TRANSPORTISTA;
+  } else if (estado === "PENDIENTE_ENVIO_CREMATORIO" || estado === "EN_TRASLADO_A_CREMATORIO") {
     etapa = "TRASLADO";
     fechaActual = pedido.FECHA_ENVIO_CREMATORIO_PROGRAMADA || "";
-  }
-
-  else if (estado === "PENDIENTE_RETIRAR_CENIZAS_CREMATORIO") {
+    actual = pedido.TRASLADO_CREMATORIO_TRANSPORTISTA;
+  } else if (estado === "PENDIENTE_RETIRAR_CENIZAS_CREMATORIO") {
     etapa = "DEVOLUCION";
-    fechaActual = "";
-  }
-
-  else if (
-    estado === "ENTREGA_PROGRAMADA_CAJA_HOMENAJE" ||
-    estado === "EN_ENTREGA_CAJA_HOMENAJE"
-  ) {
+    actual = pedido.DEVOLUCION_CENIZA_TRANSPORTISTA;
+  } else if (estado === "ENTREGA_PROGRAMADA_CAJA_HOMENAJE" || estado === "EN_ENTREGA_CAJA_HOMENAJE") {
     etapa = "ENTREGA";
     fechaActual = pedido.ENTREGA_FECHA_PROGRAMADA || "";
-  }
-
-  else {
+    actual = pedido.ENTREGA_TRANSPORTISTA;
+  } else {
     alert("Este estado no permite reasignar transportista.");
     return;
   }
 
-  const nuevaFecha = prompt(
-    "Etapa detectada automáticamente: " + etapa +
-    "\n\nFecha programada actual/modificada:",
-    fechaActual
-  );
+  let transportistas;
+  try {
+    transportistas = await llamarApi("obtenerTransportistas", []);
+  } catch (e) {
+    if (e.message !== "SESION_VENCIDA") alert("Error: " + e.message);
+    return;
+  }
 
-  if (nuevaFecha === null) return;
+  if (!transportistas.length) {
+    alert("No hay transportistas cargados en la hoja usuarios.");
+    return;
+  }
 
-  const nuevaHora = prompt(
-    "Hora programada opcional.\n\nEjemplo: 12:30\n\nDejar vacío si no tiene horario:",
-    ""
-  );
+  const f = fechaParaInputs(fechaActual);
+  const campos = [{
+    nombre: "mail",
+    etiqueta: "Transportista",
+    tipo: "select",
+    valor: String(actual || "").trim().toLowerCase(),
+    opciones: transportistas.map(t => ({ valor: String(t.mail).trim().toLowerCase(), texto: t.nombre + " — " + t.mail })),
+    obligatorio: true
+  }];
 
-  if (nuevaHora === null) return;
+  if (etapa !== "DEVOLUCION") {
+    campos.push(
+      { nombre: "fecha", etiqueta: "Fecha programada", tipo: "date", valor: f.fecha },
+      { nombre: "hora", etiqueta: "Hora (opcional)", tipo: "time", valor: f.hora }
+    );
+  }
 
-  const fechaProgramadaFinal = nuevaHora
-    ? nuevaFecha + " " + nuevaHora
-    : nuevaFecha;
+  const r = await ui.formulario("Reasignar " + nombreEtapa(etapa), campos, {
+    textoOk: "Reasignar",
+    intro: "Pedido " + idPedido + " · " + (pedido.NOMBRE_MASCOTA || "")
+  });
+
+  if (!r) return;
+
+  const fechaFinal = r.fecha ? (r.fecha + (r.hora ? " " + r.hora : "")) : fechaActual;
 
   servidor()
-    .withSuccessHandler(function(transportistas) {
-
-      if (!transportistas.length) {
-        alert("No hay transportistas cargados en la hoja usuarios.");
-        return;
-      }
-
-      const opciones = transportistas
-        .map((t, i) => `${i + 1}. ${t.nombre} - ${t.mail}`)
-        .join("\n");
-
-      const elegido = prompt(
-        "Elegí transportista:\n\n" + opciones,
-        "1"
-      );
-
-      if (!elegido) return;
-
-      const index = Number(elegido) - 1;
-
-      if (!transportistas[index]) {
-        alert("Opción inválida");
-        return;
-      }
-
-      servidor()
-        .withSuccessHandler(function() {
-          cargarPedidosSinCerrar(idPedido);
-        })
-        .withFailureHandler(function(error) {
-          alert("Error: " + error.message);
-        })
-        .reasignarTransportistaConFecha(
-          idPedido,
-          etapa,
-          transportistas[index].mail,
-          fechaProgramadaFinal
-        );
-
+    .withSuccessHandler(function() {
+      alert("Transportista reasignado.");
+      cargarPedidosSinCerrar(idPedido);
     })
     .withFailureHandler(function(error) {
       alert("Error: " + error.message);
     })
-    .obtenerTransportistas();
+    .reasignarTransportistaConFecha(idPedido, etapa, r.mail, fechaFinal);
 }
 
-function abrirAsignarTransportistaYAvanzar(idPedido) {
+async function abrirAsignarTransportistaYAvanzar(idPedido) {
 
   const pedido = pedidosGlobal.find(p => p.ID_PEDIDO == idPedido);
 
@@ -2608,82 +2517,80 @@ function abrirAsignarTransportistaYAvanzar(idPedido) {
     return;
   }
 
-  const estado =
-    String(pedido.ESTADO_LOGISTICO || "")
-      .trim()
-      .toUpperCase();
+  const estado = String(pedido.ESTADO_LOGISTICO || "").trim().toUpperCase();
 
-  let etapa = "";
+  const etapas = {
+    PENDIENTE_COORDINAR_RETIRO: "RETIRO",
+    EN_BASE: "TRASLADO",
+    CREMADO: "DEVOLUCION",
+    PENDIENTE_COORDINAR_ENTREGA: "ENTREGA"
+  };
 
-  if (estado === "PENDIENTE_COORDINAR_RETIRO") {
-    etapa = "RETIRO";
-  }
+  const etapa = etapas[estado];
 
-  else if (estado === "EN_BASE") {
-    etapa = "TRASLADO";
-  }
-
-  else if (estado === "CREMADO") {
-    etapa = "DEVOLUCION";
-  }
-
-  else if (estado === "PENDIENTE_COORDINAR_ENTREGA") {
-    etapa = "ENTREGA";
-  }
-
-  else {
+  if (!etapa) {
     alert("Este estado no permite asignar transportista y avanzar.");
     return;
   }
 
+  let transportistas;
+  try {
+    transportistas = await llamarApi("obtenerTransportistas", []);
+  } catch (e) {
+    if (e.message !== "SESION_VENCIDA") alert("Error: " + e.message);
+    return;
+  }
+
+  if (!transportistas.length) {
+    alert("No hay transportistas cargados en la hoja usuarios.");
+    return;
+  }
+
+  const r = await ui.formulario("Asignar " + nombreEtapa(etapa), [{
+    nombre: "mail",
+    etiqueta: "Transportista",
+    tipo: "select",
+    placeholder: "Elegí un transportista…",
+    opciones: transportistas.map(t => ({ valor: t.mail, texto: t.nombre + " — " + t.mail })),
+    obligatorio: true
+  }], {
+    textoOk: "Asignar y avanzar",
+    intro: "Pedido " + idPedido + " · " + (pedido.NOMBRE_MASCOTA || "") + ". Le llega un mail al transportista."
+  });
+
+  if (!r) return;
+
   servidor()
-    .withSuccessHandler(function(transportistas) {
-
-      if (!transportistas.length) {
-        alert("No hay transportistas cargados en la hoja usuarios.");
-        return;
-      }
-
-      const opciones = transportistas
-        .map((t, i) => `${i + 1}. ${t.nombre} - ${t.mail}`)
-        .join("\n");
-
-      const elegido = prompt(
-        "Etapa detectada automáticamente: " + etapa +
-        "\n\nElegí transportista:\n\n" + opciones,
-        "1"
-      );
-
-      if (!elegido) return;
-
-      const index = Number(elegido) - 1;
-
-      if (!transportistas[index]) {
-        alert("Opción inválida");
-        return;
-      }
-
-      servidor()
-        .withSuccessHandler(function() {
-          cargarPedidosSinCerrar(idPedido);
-        })
-        .withFailureHandler(function(error) {
-          alert("Error: " + error.message);
-        })
-        .asignarTransportistaYAvanzar(
-          idPedido,
-          etapa,
-          transportistas[index].mail
-        );
-
+    .withSuccessHandler(function() {
+      alert("Transportista asignado.");
+      cargarPedidosSinCerrar(idPedido);
     })
     .withFailureHandler(function(error) {
       alert("Error: " + error.message);
     })
-    .obtenerTransportistas();
+    .asignarTransportistaYAvanzar(idPedido, etapa, r.mail);
 }
 
+function nombreEtapa(etapa) {
+  return {
+    RETIRO: "retiro",
+    TRASLADO: "traslado al crematorio",
+    DEVOLUCION: "retiro de cenizas",
+    ENTREGA: "entrega al tutor"
+  }[etapa] || etapa;
+}
 
+/** Convierte una fecha guardada a los valores de los campos fecha/hora. */
+function fechaParaInputs(valor) {
+  const d = convertirFechaPedido(valor);
+  if (!d) return { fecha: "", hora: "" };
+  const dos = n => String(n).padStart(2, "0");
+  const tieneHora = /\d{1,2}:\d{2}/.test(String(valor));
+  return {
+    fecha: d.getFullYear() + "-" + dos(d.getMonth() + 1) + "-" + dos(d.getDate()),
+    hora: tieneHora ? dos(d.getHours()) + ":" + dos(d.getMinutes()) : ""
+  };
+}
 
 function cargarVistaTransportista() {
   document.getElementById("dashboard").innerHTML = "";
@@ -3062,8 +2969,8 @@ function responderTarea(idPedido, etapa, respuesta) {
     })
     .responderTareaTransportista(idPedido, etapa, respuesta);
 }
-function confirmarRetiroPedido(idPedido) {
-  if (!confirm("¿Confirmás que el retiro fue realizado?")) return;
+async function confirmarRetiroPedido(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que el retiro fue realizado?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3075,8 +2982,8 @@ function confirmarRetiroPedido(idPedido) {
     .confirmarRetiro(idPedido);
 }
 
-function confirmarTrasladoCrematorioPedido(idPedido) {
-  if (!confirm("¿Confirmás que el traslado al crematorio fue realizado?")) return;
+async function confirmarTrasladoCrematorioPedido(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que el traslado al crematorio fue realizado?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3088,8 +2995,8 @@ function confirmarTrasladoCrematorioPedido(idPedido) {
     .confirmarTrasladoCrematorio(idPedido);
 }
 
-function confirmarDevolucionCenizasPedido(idPedido) {
-  if (!confirm("¿Confirmás que las cenizas fueron devueltas a sede?")) return;
+async function confirmarDevolucionCenizasPedido(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que las cenizas fueron devueltas a sede?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3101,8 +3008,8 @@ function confirmarDevolucionCenizasPedido(idPedido) {
     .confirmarDevolucionCenizas(idPedido);
 }
 
-function confirmarEntregaCenizasPedido(idPedido) {
-  if (!confirm("¿Confirmás que las cenizas fueron entregadas al tutor?")) return;
+async function confirmarEntregaCenizasPedido(idPedido) {
+  if (!await ui.confirmar("¿Confirmás que las cenizas fueron entregadas al tutor?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3117,8 +3024,13 @@ function cambiarVistaTransportista(vista) {
   vistaTransportistaActual = vista;
   cargarVistaTransportista();
 }
-function abrirCrearIncidencia(idPedido) {
-  const incidencia = prompt("Describí la incidencia logística:", "");
+async function abrirCrearIncidencia(idPedido) {
+  const incidencia = await ui.pedirTexto("Nueva incidencia logística", {
+    multilinea: true,
+    obligatorio: true,
+    placeholder: "Describí qué pasó…",
+    textoOk: "Crear incidencia"
+  });
 
   if (!incidencia) return;
 
@@ -3132,8 +3044,8 @@ function abrirCrearIncidencia(idPedido) {
     .crearIncidenciaLogistica(idPedido, incidencia);
 }
 
-function volverEstadoAnterior(idPedido) {
-  if (!confirm("¿Querés volver el pedido al estado anterior?")) return;
+async function volverEstadoAnterior(idPedido) {
+  if (!await ui.confirmar("¿Querés volver el pedido al estado anterior?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3144,8 +3056,8 @@ function volverEstadoAnterior(idPedido) {
     })
     .volverEstadoAnteriorLogistico(idPedido);
 }
-function pasarSiguienteEstado(idPedido) {
-  if (!confirm("¿Querés pasar este pedido al siguiente estado?")) return;
+async function pasarSiguienteEstado(idPedido) {
+  if (!await ui.confirmar("¿Querés pasar este pedido al siguiente estado?")) return;
 
   servidor()
     .withSuccessHandler(function() {
@@ -3158,8 +3070,8 @@ function pasarSiguienteEstado(idPedido) {
 }
 
 
-function cancelarPedidoIncidencia(idPedido) {
-  if (!confirm(
+async function cancelarPedidoIncidencia(idPedido) {
+  if (!await ui.confirmar(
     "¿Confirmás que querés cancelar este pedido? " +
     "Pasará a Pedidos finalizados."
   )) {
