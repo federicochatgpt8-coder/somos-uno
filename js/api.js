@@ -3,8 +3,8 @@
  *
  * - `servidor()` reemplaza a `google.script.run` con la misma forma de uso:
  *     servidor().withSuccessHandler(fn).withFailureHandler(fn).nombreFuncion(args)
- * - El ingreso usa "Continuar con Google" (Google Identity Services).
- *   El token se guarda en este dispositivo y se renueva solo cuando vence.
+ * - Ingreso: "Continuar con Google" una vez → el servidor entrega una sesión
+ *   de 30 días que queda guardada en este dispositivo.
  */
 
 const CONFIG_APP = {
@@ -12,9 +12,44 @@ const CONFIG_APP = {
   GOOGLE_CLIENT_ID: "322063270623-s06b2bn6t4l20n5nra1iqqn1pj0mnutl.apps.googleusercontent.com"
 };
 
-const CLAVE_TOKEN = "somosUnoGoogleToken";
+const CLAVE_SESION = "somosUnoSesion30d";
+const CLAVE_TOKEN = "somosUnoGoogleToken"; // solo si el servidor aún no tiene sesiones
+
+let sesionActual = leerLocal(CLAVE_SESION);
 let tokenActual = null;
-let esperandoToken = null; // promesa mientras Google entrega un token nuevo
+let avisoSesionMostrado = false;
+
+/* ------------------------------------------------------------------ */
+/*  Utilidades                                                         */
+/* ------------------------------------------------------------------ */
+
+function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function borrarLocal(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+function tokenVigente(token) {
+  try {
+    const p = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return p.exp * 1000 - Date.now() > 60 * 1000;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function postApi(cuerpo) {
+  let r;
+  try {
+    r = await fetch(CONFIG_APP.API_URL, {
+      method: "POST",
+      // text/plain evita el "preflight" CORS que Apps Script no soporta
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(cuerpo)
+    });
+  } catch (e) {
+    throw new Error("No se pudo conectar. Revisá tu conexión a internet.");
+  }
+  return r.json();
+}
 
 /* ------------------------------------------------------------------ */
 /*  Llamadas al servidor                                               */
@@ -29,144 +64,106 @@ function servidor() {
       if (nombre === "withSuccessHandler") return f => { alExito = f; return llamada; };
       if (nombre === "withFailureHandler") return f => { alFallar = f; return llamada; };
       if (nombre === "withUserObject") return () => llamada;
-      return (...args) => { llamarApi(nombre, args).then(r => alExito(r), e => alFallar(e)); };
+      return (...args) => {
+        llamarApi(nombre, args).then(
+          r => alExito(r),
+          e => { if (e.message !== "SESION_VENCIDA") alFallar(e); }
+        );
+      };
     }
   });
 
   return llamada;
 }
 
-async function llamarApi(fn, args, reintento) {
-  const token = await obtenerToken();
+async function llamarApi(fn, args) {
+  const cuerpo = { fn: fn, args: args || [] };
 
-  let respuesta;
-  try {
-    const r = await fetch(CONFIG_APP.API_URL, {
-      method: "POST",
-      // text/plain evita el "preflight" CORS que Apps Script no soporta
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ fn: fn, args: args || [], idToken: token })
-    });
-    respuesta = await r.json();
-  } catch (e) {
-    throw new Error("No se pudo conectar. Revisá tu conexión a internet.");
+  if (sesionActual) {
+    cuerpo.sesion = sesionActual;
+  } else if (tokenActual && tokenVigente(tokenActual)) {
+    cuerpo.idToken = tokenActual;
+  } else {
+    sesionTerminada();
+    throw new Error("SESION_VENCIDA");
   }
 
-  if (!respuesta.ok) {
-    const error = String(respuesta.error || "Error desconocido");
+  const resp = await postApi(cuerpo);
 
-    if ((error === "SESION_VENCIDA" || error === "SESION_REQUERIDA") && !reintento) {
-      borrarToken();
-      return llamarApi(fn, args, true);
+  if (!resp.ok) {
+    const error = String(resp.error || "Error desconocido");
+    if (error === "SESION_VENCIDA" || error === "SESION_REQUERIDA") {
+      sesionTerminada();
+      throw new Error("SESION_VENCIDA");
     }
     throw new Error(error);
   }
 
-  return respuesta.data;
+  return resp.data;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Token de Google                                                    */
-/* ------------------------------------------------------------------ */
-
-function leerExpiracion(token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return { exp: payload.exp * 1000, email: payload.email, nombre: payload.name, foto: payload.picture };
-  } catch (e) {
-    return null;
-  }
-}
-
-function tokenVigente(token) {
-  const info = token && leerExpiracion(token);
-  return !!(info && info.exp - Date.now() > 60 * 1000); // al menos 1 minuto de margen
-}
-
-function guardarToken(token) {
-  tokenActual = token;
-  try { localStorage.setItem(CLAVE_TOKEN, token); } catch (e) {}
-}
-
-function borrarToken() {
+function sesionTerminada() {
+  sesionActual = null;
   tokenActual = null;
-  try { localStorage.removeItem(CLAVE_TOKEN); } catch (e) {}
-}
-
-function tokenGuardado() {
-  try { return localStorage.getItem(CLAVE_TOKEN); } catch (e) { return null; }
-}
-
-/** Devuelve un token válido; si venció, pide uno nuevo a Google sin molestar (si se puede). */
-function obtenerToken() {
-  if (tokenVigente(tokenActual)) return Promise.resolve(tokenActual);
-
-  if (!esperandoToken) {
-    esperandoToken = new Promise((resolve, reject) => {
-      resolverToken = resolve;
-      rechazarToken = reject;
-      try {
-        google.accounts.id.prompt(notif => {
-          if (notif.isNotDisplayed() || notif.isSkippedMoment()) {
-            // Google no pudo renovar solo: mostramos la pantalla de ingreso.
-            rechazarToken(new Error("Tu sesión venció. Ingresá de nuevo con Google."));
-          }
-        });
-      } catch (e) {
-        rechazarToken(new Error("Tu sesión venció. Ingresá de nuevo con Google."));
-      }
-    }).finally(() => { esperandoToken = null; });
-
-    esperandoToken.catch(() => {
-      usuarioActual = null;
-      detenerActualizacionAutomatica && detenerActualizacionAutomatica();
-      mostrarLogin();
-      mostrarMensajeLogin("Tu sesión venció. Tocá “Continuar con Google” para seguir.");
-    });
+  borrarLocal(CLAVE_SESION);
+  borrarLocal(CLAVE_TOKEN);
+  usuarioActual = null;
+  try { detenerActualizacionAutomatica(); } catch (e) {}
+  try { cerrarPedido(); } catch (e) {}
+  mostrarLogin();
+  if (!avisoSesionMostrado) {
+    avisoSesionMostrado = true;
+    mostrarMensajeLogin("Tu sesión terminó. Tocá “Continuar con Google” para seguir.");
   }
-
-  return esperandoToken;
 }
-
-let resolverToken = null;
-let rechazarToken = null;
 
 /* ------------------------------------------------------------------ */
 /*  Ingreso                                                            */
 /* ------------------------------------------------------------------ */
 
-function alRecibirCredencialGoogle(resp) {
-  guardarToken(resp.credential);
+async function alRecibirCredencialGoogle(resp) {
+  mostrarMensajeLogin("Verificando tu cuenta…");
+  avisoSesionMostrado = false;
 
-  if (resolverToken) {
-    // Era una renovación silenciosa en medio del uso.
-    const r = resolverToken;
-    resolverToken = null;
-    r(resp.credential);
-    if (usuarioActual) return;
+  try {
+    const r = await postApi({ fn: "iniciarSesion", idToken: resp.credential });
+
+    if (r.ok) {
+      sesionActual = r.data.sesion;
+      guardarLocal(CLAVE_SESION, sesionActual);
+      entrar(r.data.usuario);
+      return;
+    }
+
+    // Servidor sin sesiones todavía: se usa el token de Google (dura 1 hora).
+    if (String(r.error || "").indexOf("iniciarSesion") !== -1) {
+      tokenActual = resp.credential;
+      guardarLocal(CLAVE_TOKEN, tokenActual);
+      const u = await llamarApi("quienSoy", []);
+      entrar(u);
+      return;
+    }
+
+    throw new Error(r.error || "No se pudo ingresar.");
+
+  } catch (err) {
+    mostrarLogin();
+    mostrarMensajeLogin(err.message === "SESION_VENCIDA" ? "No se pudo ingresar. Probá de nuevo." : err.message, true);
   }
-
-  entrarAlSistema();
 }
 
-function entrarAlSistema() {
-  mostrarMensajeLogin("Verificando tu cuenta…");
-
-  llamarApi("quienSoy", [])
-    .then(usuario => {
-      usuarioActual = usuario;
-      mostrarMensajeLogin("");
-      iniciarSistema();
-    })
-    .catch(err => {
-      borrarToken();
-      mostrarLogin();
-      mostrarMensajeLogin(err.message, true);
-    });
+function entrar(usuario) {
+  usuarioActual = usuario;
+  mostrarMensajeLogin("");
+  iniciarSistema();
 }
 
 function cerrarSesionGoogle() {
-  borrarToken();
+  if (sesionActual) postApi({ fn: "cerrarSesion", sesion: sesionActual }).catch(() => {});
+  sesionActual = null;
+  tokenActual = null;
+  borrarLocal(CLAVE_SESION);
+  borrarLocal(CLAVE_TOKEN);
   try { google.accounts.id.disableAutoSelect(); } catch (e) {}
   mostrarMensajeLogin("Cerraste sesión.");
 }
@@ -176,6 +173,32 @@ function mostrarMensajeLogin(texto, esError) {
   if (!el) return;
   el.textContent = texto || "";
   el.classList.toggle("login-error", !!esError);
+}
+
+function arrancar() {
+  // Si ya hay una sesión guardada, se entra directo sin pasar por Google.
+  if (sesionActual) {
+    mostrarMensajeLogin("Ingresando…");
+    llamarApi("quienSoy", [])
+      .then(entrar)
+      .catch(err => {
+        if (err.message !== "SESION_VENCIDA") {
+          mostrarLogin();
+          mostrarMensajeLogin(err.message, true);
+        }
+      });
+    return;
+  }
+
+  const token = leerLocal(CLAVE_TOKEN);
+  if (token && tokenVigente(token)) {
+    tokenActual = token;
+    llamarApi("quienSoy", []).then(entrar).catch(() => {});
+    return;
+  }
+
+  mostrarLogin();
+  mostrarMensajeLogin("");
 }
 
 function iniciarGoogle() {
@@ -197,18 +220,12 @@ function iniciarGoogle() {
     width: 280
   });
 
-  const guardado = tokenGuardado();
-  if (tokenVigente(guardado)) {
-    tokenActual = guardado;
-    entrarAlSistema();
-  } else {
-    borrarToken();
-    mostrarLogin();
-    google.accounts.id.prompt();
-  }
+  if (!sesionActual) google.accounts.id.prompt();
 }
 
-/* Espera a que cargue la librería de Google y arranca. */
+/* Arranque */
+arrancar();
+
 (function esperarGoogle() {
   if (window.google && google.accounts && google.accounts.id) {
     iniciarGoogle();
