@@ -71,11 +71,12 @@ function calcularMetricas(pedidos, desde, hasta) {
     textos.forEach(t => {
       const r = resolverVet(t);
       if (!r) return;
-      const g = m.get(r.grupo) || { nombre: r.nombre, n: 0, pendiente: r.estado === "pendiente" };
+      const g = m.get(r.grupo) || { nombre: r.nombre, n: 0, pendiente: r.estado === "pendiente", aliada: r.grupo.startsWith("id:") };
       g.n++;
       m.set(r.grupo, g);
     });
-    return [...m.values()].sort((a, b) => b.n - a.n).map(g => [g.nombre + (g.pendiente ? " ⚠️" : ""), g.n]);
+    const etiqueta = g => g.nombre + (g.aliada ? " (aliada)" : g.pendiente ? " (sin revisar) ⚠️" : " (no aliada)");
+    return [...m.values()].sort((a, b) => b.n - a.n).map(g => [etiqueta(g), g.n]);
   };
   const conVetRetiro = validos.filter(p => String(p.VETERINARIA || "").trim());
   const conRecomendacion = validos.filter(p => !String(p.VETERINARIA || "").trim() && String(p.DETALLE_VETERINARIA_RECOMENDO || "").trim());
