@@ -28,7 +28,6 @@ const ESTADOS_KANBAN = [
   "CREMADO",
 
   "PENDIENTE_RETIRAR_CENIZAS_CREMATORIO",
-  "CENIZAS_RECIBIDAS",
 
   "PENDIENTE_ARMAR_CAJA_HOMENAJE",
   "PENDIENTE_COORDINAR_ENTREGA",
@@ -356,7 +355,6 @@ function renderDashboard(pedidos) {
     ]],
 
     ["Devolver kits", [
-      "CENIZAS_RECIBIDAS",
       "PENDIENTE_ARMAR_CAJA_HOMENAJE",
       "PENDIENTE_COORDINAR_ENTREGA",
       "ENTREGA_PROGRAMADA_CAJA_HOMENAJE",
@@ -758,7 +756,6 @@ function claseAlertaTiempoPedido(pedido) {
     "EN_CREMATORIO",
     "CREMADO",
     "PENDIENTE_RETIRAR_CENIZAS_CREMATORIO",
-    "CENIZAS_RECIBIDAS",
     "PENDIENTE_ARMAR_CAJA_HOMENAJE",
     "PENDIENTE_COORDINAR_ENTREGA",
     "ENTREGA_PROGRAMADA_CAJA_HOMENAJE",
@@ -1128,7 +1125,7 @@ function esTareaFinalizadaTransportista(pedido) {
     [
       "EN_BASE",
       "EN_CREMATORIO",
-      "CENIZAS_RECIBIDAS",
+      "PENDIENTE_ARMAR_CAJA_HOMENAJE",
       "ENTREGADO_CAJA_HOMENAJE"
     ].includes(estado)
   );
@@ -1566,7 +1563,7 @@ function renderAccionesTransportista(pedido) {
       titulo: "Devolución de cenizas",
       campoTransportista: "DEVOLUCION_CENIZA_TRANSPORTISTA",
       campoAsignacion: "DEVOLUCION_ESTADO_ASIGNACION",
-      estadoFinal: "CENIZAS_RECIBIDAS",
+      estadoFinal: "PENDIENTE_ARMAR_CAJA_HOMENAJE",
       textoConfirmar: "Confirmar devolución",
       funcionConfirmar: "confirmarDevolucionCenizasPedido"
     },
@@ -1900,12 +1897,6 @@ function renderAccionesAdministrador(pedido) {
     `;
   }
 
-  else if (estado === "CENIZAS_RECIBIDAS") {
-    botones = `
-      ${btnSiguiente}
-      ${btnIncidencia}
-    `;
-  }
 
   else if (estado === "PENDIENTE_ARMAR_CAJA_HOMENAJE") {
     botones = `
@@ -2742,7 +2733,7 @@ function renderVistaTransportista(tareas) {
       titulo: "Devolución de cenizas a sede",
       campoTransportista: "DEVOLUCION_CENIZA_TRANSPORTISTA",
       campoAsignacion: "DEVOLUCION_ESTADO_ASIGNACION",
-      estadoFinal: "CENIZAS_RECIBIDAS"
+      estadoFinal: "PENDIENTE_ARMAR_CAJA_HOMENAJE"
     },
     {
       titulo: "Entrega de cenizas",
@@ -3013,7 +3004,7 @@ function progresoDevolucionTransportista(p) {
   const completada =
     String(p.ESTADO_LOGISTICO || "")
       .trim()
-      .toUpperCase() === "CENIZAS_RECIBIDAS";
+      .toUpperCase() === "PENDIENTE_ARMAR_CAJA_HOMENAJE";
 
   return `
     <div class="timeline-tarea">
