@@ -146,6 +146,7 @@ function htmlRevisionVets(pedidos) {
     .map(g => Object.assign(g, { sug: sugerenciasVet(g.clave) }))
     .sort((a, b) => (b.sug.length > 0) - (a.sug.length > 0) || b.n - a.n);
   const opciones = d.oficiales
+    .filter(o => o.activa !== false && !/testing|prueba/i.test(o.nombre))
     .slice().sort((a, b) => a.nombre.localeCompare(b.nombre))
     .map(o => `<option value="${ui.esc(o.id)}">${ui.esc(o.nombre)}</option>`).join("");
 
