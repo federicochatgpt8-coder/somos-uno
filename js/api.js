@@ -8,7 +8,7 @@
  */
 
 const CONFIG_APP = {
-  API_URL: "https://script.google.com/macros/s/AKfycbwzl7-lCikdPZ1AvCg0jPl77GqaAQ5H24i95dkjvb3rxd4Fcjf8aBK5LT1yUg8uQLnS/exec",
+  API_URL: "https://script.google.com/macros/s/AKfycbx35OlXXUy5jgUGwlnzktley9QWjfDQSOO71veLipFRiFdAFl5oKZFSdUt7s7DWHAKQ/exec",
   GOOGLE_CLIENT_ID: "322063270623-s06b2bn6t4l20n5nra1iqqn1pj0mnutl.apps.googleusercontent.com"
 };
 
