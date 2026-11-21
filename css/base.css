@@ -1,0 +1,411 @@
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #1f2933;
+  overflow-x: hidden;
+}
+
+.app {
+  padding: 20px;
+}
+
+.topbar {
+  background: #073559;
+  color: white;
+  padding: 18px 22px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.topbar p {
+  margin: 6px 0 0;
+  opacity: .9;
+}
+
+button {
+  border: none;
+  background: white;
+  color: #073559;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.badge-pago-pendiente{
+  background:#fff3cd !important;
+}
+
+.dashboard {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.btn-rechazar {
+  background: #c62828 !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.btn-rechazar:hover {
+  background: #a61b1b !important;
+}
+
+.btn-rechazar-chico {
+  font-size: 14px !important;
+  padding: 10px 18px !important;
+  min-width: auto !important;
+  opacity: 0.95;
+}
+
+
+
+
+.timeline-tarea {
+  margin-top: 12px;
+  padding-left: 4px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  position: relative;
+  min-height: 28px;
+  font-size: 13px;
+  color: #777;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 16px;
+  bottom: -12px;
+  width: 2px;
+  background: #d9d9d9;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-punto {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-top: 2px;
+}
+
+.timeline-item.ok {
+  color: #1f7a3a;
+  font-weight: 700;
+}
+
+.timeline-item.ok .timeline-punto {
+  background: #2f7d32;
+}
+
+.estado-actual{
+  margin-top:12px;
+  margin-bottom:12px;
+  padding:12px 16px;
+  border-radius:10px;
+  background:#e8f1fb;
+  color:#073559;
+  font-weight:800;
+  font-size:15px;
+  text-align:center;
+  border:1px solid #cfe0f5;
+}
+
+.timeline-item.ok::before {
+  background: #2f7d32;
+}
+
+.timeline-texto {
+  line-height: 1.2;
+}
+
+.pago-pendiente {
+  display: inline-block;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.card .label {
+  font-size: 13px;
+  color: #667085;
+}
+
+.menu-admin{
+  grid-column: 1 / -1;
+  margin-bottom: 10px;
+}
+
+.card .number {
+  font-size: 30px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.section-title {
+  margin-top: 28px;
+}
+
+.kanban {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 20px;
+  max-width: 100vw;
+}
+
+.column {
+  min-width: 280px;
+  background: #e9eef3;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.column h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.pedido {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 5px rgba(0,0,0,.08);
+}
+
+.pedido .id {
+  font-weight: bold;
+  font-size: 13px;
+  color: #073559;
+}
+
+.pedido .mascota {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+.pedido .detalle {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #eef2ff;
+}
+
+.btn-disabled{
+  background:#e5e7eb !important;
+  color:#6b7280 !important;
+  cursor:not-allowed !important;
+}
+
+.menu-transportista{
+  display:flex;
+  gap:8px;
+}
+
+
+.panel-detalle{
+  position:fixed !important;
+  top:0 !important;
+  right:0 !important;
+  width:700px !important;
+  max-width:90vw !important;
+  height:100vh !important;
+  background:white !important;
+  box-shadow:-4px 0 20px rgba(0,0,0,.2) !important;
+  overflow-y:auto !important;
+  z-index:999999 !important;
+  padding:20px !important;
+}
+
+.oculto{
+  display:none !important;
+}
+
+.cerrar-panel{
+  float:right;
+  cursor:pointer;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.bloque{
+  margin-bottom:20px;
+  padding-bottom:15px;
+  border-bottom:1px solid #ddd;
+}
+
+.bloque h3{
+  margin-bottom:10px;
+  color:#073559;
+}
+
+.campo{
+  margin-bottom:8px;
+}
+
+.campo strong{
+  display:block;
+  font-size:12px;
+  color:#666;
+}
+
+.tags{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+
+.grid-campos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 18px;
+}
+
+.campo span{
+  display:block;
+  font-size:14px;
+  color:#111827;
+  word-break:break-word;
+}
+
+.acciones{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.acciones button{
+  background:#073559;
+  color:white;
+}
+
+button {
+  transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.25);
+  opacity: .85;
+}
+
+.pago-alerta {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.confirmacion-si {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.confirmacion-pendiente {
+  color: #ca8a04;
+  font-weight: 700;
+}
+
+.monto-cobrar {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 2px solid #f59e0b;
+  color: #92400e;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Alerta por demora logística: solamente se asigna desde JS al administrador */
+.pedido.pedido-alerta-amarilla {
+  background: #fff4cc !important;
+  border: 2px solid #e8bd45;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 0 2px rgba(232, 189, 69, 0.10);
+}
+
+.pedido.pedido-alerta-roja {
+  background: #fde2e2 !important;
+  border: 2px solid #dc6b6b;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 0 2px rgba(220, 107, 107, 0.10);
+}
+
+/* Mantiene legibles los detalles dentro de las tarjetas alertadas */
+.pedido.pedido-alerta-amarilla .detalle,
+.pedido.pedido-alerta-roja .detalle {
+  color: #3f3f3f;
+}
+
+.btn-foto-retrato {
+  background: #0f766e !important;
+  color: white !important;
+}
+
+.btn-foto-retrato:hover {
+  background: #115e59 !important;
+}
+
+.kpi-comparacion {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.kpi-variacion {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.kpi-periodo {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
