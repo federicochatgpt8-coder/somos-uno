@@ -546,3 +546,10 @@ body.modal-abierto { overflow: hidden; }
 .m-fila2 { display: grid; grid-template-columns: minmax(260px, 1fr) 3fr; gap: 12px; margin-top: 12px; }
 .m-fila2 .m-card-ancha { grid-column: auto; }
 @media (max-width: 900px) { .m-fila2 { grid-template-columns: 1fr; } }
+
+/* Logo */
+.login-logo { width: 170px; max-width: 70%; height: auto; display: block; margin: 0 auto; }
+.topbar-titulo { display: flex; align-items: center; gap: 14px; }
+.topbar-logo { width: 64px; height: auto; flex: 0 0 auto; }
+@media (max-width: 760px) { .topbar-logo { width: 50px; } }
+.login-logo + .login-sub { margin-top: 12px; }
