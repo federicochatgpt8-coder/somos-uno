@@ -23,7 +23,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-h1, h2, .login-marca {
+.topbar h1, .section-title h2, .login-marca {
   font-family: "Cormorant Garamond", Georgia, serif;
   font-weight: 600;
   letter-spacing: .2px;
@@ -165,6 +165,24 @@ button { font-family: inherit; min-height: 40px; }
 .acciones button { background: var(--azul); }
 
 input, select, textarea { font-family: inherit; font-size: 16px; }
+
+/* Nombre de la mascota: bien visible */
+.pedido .mascota {
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--azul);
+  letter-spacing: -.2px;
+}
+
+.panel-detalle h2 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  color: var(--azul);
+  letter-spacing: -.4px;
+  margin: 4px 0 14px;
+}
 
 /* Panel de detalle */
 .panel-detalle {
