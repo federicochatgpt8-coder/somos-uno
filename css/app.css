@@ -509,7 +509,7 @@ body.modal-abierto { overflow: hidden; }
 .var { font-weight: 800; font-size: 12px; }
 .var.sube { color: #1f6b43; } .var.baja { color: #9b1c1c; } .var.neutra { color: #667085; }
 .var-txt { color: #98a2b3; font-size: 11px; }
-.m-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+.m-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 12px; }
 .m-card { border: 1px solid #eef0f3; border-radius: 14px; padding: 14px; }
 .m-card-ancha { grid-column: 1 / -1; }
 .m-card-titulo { font-weight: 800; color: var(--azul); margin-bottom: 10px; font-size: 14px; }
@@ -553,3 +553,24 @@ body.modal-abierto { overflow: hidden; }
 .topbar-logo { width: 64px; height: auto; flex: 0 0 auto; }
 @media (max-width: 760px) { .topbar-logo { width: 50px; } }
 .login-logo + .login-sub { margin-top: 12px; }
+
+/* Revisión de veterinarias */
+.m-revision { background: #fffdf8; border-color: #f0e2c0; }
+.rev-badge { background: #F7D28C; color: #5c3d00; border-radius: 999px; padding: 1px 9px; font-size: 12px; margin-left: 6px; }
+.rev-ayuda { color: #667085; font-size: 13px; margin: -4px 0 12px; line-height: 1.4; }
+.rev-fila { display: flex; gap: 12px; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid #f3ead6; }
+.rev-fila.rev-guardando { opacity: .4; pointer-events: none; }
+.rev-texto strong { color: var(--texto); }
+.rev-texto small { display: block; color: #98a2b3; margin-top: 2px; }
+.rev-acciones { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.rev-acciones button, .rev-acciones select { min-height: 36px; border-radius: 999px; font-size: 13px; padding: 6px 12px; }
+.rev-sug { background: var(--azul) !important; color: #fff !important; }
+.rev-otra { background: #fff !important; color: #475467 !important; border: 1.5px solid #d0d5dd !important; }
+.rev-acciones select { border: 1.5px solid #d0d5dd; background: #fff; color: #344054; max-width: 220px; }
+.rev-confirmadas { margin-top: 12px; }
+.rev-confirmadas summary { cursor: pointer; color: var(--azul); font-weight: 700; font-size: 13px; }
+.rev-conf { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; font-size: 13px; border-bottom: 1px dashed #eee; }
+.rev-conf button { min-height: 30px; padding: 4px 12px; font-size: 12px; background: #f2f4f7; color: #475467; border-radius: 999px; }
+.m-pie { color: #98a2b3; font-size: 12px; margin-top: 4px; }
+@media (max-width: 760px) { .rev-acciones { width: 100%; } .rev-acciones > * { flex: 1 1 auto; } .rev-acciones select { max-width: none; } }
+.rev-mas summary { cursor: pointer; color: var(--azul); font-weight: 700; font-size: 13px; padding: 10px 0; border-top: 1px solid #f3ead6; }

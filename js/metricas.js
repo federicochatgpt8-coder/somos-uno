@@ -34,16 +34,6 @@ function numeroMonto(v) {
   return isNaN(r) ? 0 : r;
 }
 
-function nombreVeterinaria(v) {
-  const t = String(v || "").trim();
-  if (!t) return "";
-  const n = t.replace(/^(cl[ií]nica\s+)?veterinaria\s+/i, "").trim();
-  // "JAGUEL" → "Jaguel"
-  return n === n.toUpperCase()
-    ? n.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase())
-    : n;
-}
-
 function contar(lista, fn) {
   const m = new Map();
   lista.forEach(x => {
@@ -74,15 +64,21 @@ function calcularMetricas(pedidos, desde, hasta) {
   const cerrados = validos.filter(p => estadoDe(p) === "CERRADO");
   const facturacion = validos.reduce((s, p) => s + numeroMonto(p.MONTO), 0);
 
-  // Veterinarias: se agrupan sin distinguir "Veterinaria X" de "X"
-  const vets = new Map();
-  validos.forEach(p => {
-    const nombre = nombreVeterinaria(p.VETERINARIA);
-    const clave = normalizarTexto(nombre) || "__particular";
-    const actual = vets.get(clave) || { nombre: nombre || "Sin veterinaria (particular)", n: 0 };
-    actual.n++;
-    vets.set(clave, actual);
-  });
+  // Veterinarias (misma regla que COMISIONES: si hay veterinaria de retiro, cuenta como retiro;
+  // si no, como recomendación). Los nombres se unifican con veterinarias.js.
+  const agrupar = textos => {
+    const m = new Map();
+    textos.forEach(t => {
+      const r = resolverVet(t);
+      if (!r) return;
+      const g = m.get(r.grupo) || { nombre: r.nombre, n: 0, pendiente: r.estado === "pendiente" };
+      g.n++;
+      m.set(r.grupo, g);
+    });
+    return [...m.values()].sort((a, b) => b.n - a.n).map(g => [g.nombre + (g.pendiente ? " ⚠️" : ""), g.n]);
+  };
+  const conVetRetiro = validos.filter(p => String(p.VETERINARIA || "").trim());
+  const conRecomendacion = validos.filter(p => !String(p.VETERINARIA || "").trim() && String(p.DETALLE_VETERINARIA_RECOMENDO || "").trim());
 
   const t = campo => p => convertirFechaPedido(p[campo]);
   const tiempo = (desdeFn, hastaFn) => promedio(validos.map(p => {
@@ -121,7 +117,9 @@ function calcularMetricas(pedidos, desde, hasta) {
     planes: contar(validos, p => String(p.PLAN || "").trim() || "Sin plan"),
     pagos: contar(validos, p => String(p.FORMA_PAGO || "").trim() || "Sin dato"),
     retiro: contar(validos, p => String(p.RETIRO_PUNTO || "").trim() || "Sin dato"),
-    veterinarias: [...vets.values()].sort((a, b) => b.n - a.n).map(v => [v.nombre, v.n]),
+    vetsRetiro: agrupar(conVetRetiro.map(p => p.VETERINARIA)),
+    vetsRecomienda: agrupar(conRecomendacion.map(p => p.DETALLE_VETERINARIA_RECOMENDO)),
+    particulares: validos.length - conVetRetiro.length - conRecomendacion.length,
     tiempos: {
       retiro: tiempo(t("FECHA_CARGA"), t("RETIRO_FECHA_REAL")),
       cremacion: tiempo(t("RETIRO_FECHA_REAL"), t("FECHA_CREMACION_REAL")),
@@ -202,6 +200,7 @@ function barras(titulo, pares, opciones = {}) {
         <div class="m-barra-pista"><div class="m-barra-valor" style="width:${Math.max(2, n / max * 100)}%"></div></div>
       </div>`;
     }).join("")}
+    ${opciones.pie ? `<div class="m-pie">${ui.esc(opciones.pie)}</div>` : ""}
   </div>`;
 }
 
@@ -252,7 +251,8 @@ function seccionPeriodo(per, pedidos, nombres) {
 
     <div class="m-grid">
       ${barras("Planes", m.planes)}
-      ${barras("Veterinarias que derivaron", m.veterinarias, { limite: 6 })}
+      ${barras("Retiros en veterinaria", m.vetsRetiro, { limite: 6, pie: m.particulares + " pedidos sin veterinaria (particulares)" })}
+      ${barras("Recomendaciones de veterinarias", m.vetsRecomienda, { limite: 6 })}
       ${barras("Forma de pago", m.pagos)}
       ${barras("Lugar de retiro", m.retiro)}
     </div>
@@ -296,6 +296,7 @@ async function renderMetricas(pedidos) {
   const kanban = document.getElementById("kanban");
   const pers = periodos(new Date());
   const nombres = await nombresTransportistas();
+  await cargarVets();
 
   if (vistaAdministradorActual !== "METRICAS") return;
 
@@ -307,6 +308,7 @@ async function renderMetricas(pedidos) {
         ${pers.map(p => `<a href="#m-${p.id}" onclick="irAMetrica(event,'m-${p.id}')">${p.titulo}</a>`).join("")}
       </nav>
       <div id="m-ahora">${seccionAhora(pedidos)}</div>
+      ${htmlRevisionVets(pedidos)}
       ${pers.map(p => seccionPeriodo(p, pedidos, nombres)).join("")}
       <p class="m-nota">Ingresados = pedidos cargados en el período (sin cancelados). Viajes = tramos con fecha real dentro del período. Las comparaciones son contra el mismo tramo del período anterior.</p>
     </div>`;
